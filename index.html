@@ -1,0 +1,238 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Endless Shooting Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="controls">
+    <button id="left">◀</button>
+    <button id="shoot">●</button>
+    <button id="right">▶</button>
+  </div>
+  <div id="gameOverScreen">
+    <h1>Game Over</h1>
+    <p id="finalScore"></p>
+    <button id="restart">Restart</button>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
+<style>/* style.css */
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #000;
+}
+
+canvas {
+  border: 2px solid white;
+  display: block;
+  background-color: #111;
+}
+
+#controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+button {
+  width: 60px;
+  height: 60px;
+  background: #444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+button:active {
+  background: #888;
+}
+
+#gameOverScreen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 20px;
+  border: 2px solid white;
+  display: none;
+}
+
+#gameOverScreen h1 {
+  margin: 0;
+  font-size: 36px;
+}
+
+#gameOverScreen button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 18px;
+  cursor: pointer;
+  border: none;
+  background: #444;
+  color: white;
+  border-radius: 5px;
+}
+
+#gameOverScreen button:active {
+  background: #888;
+}</style><script>// script.js
+
+// Canvas setup
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 800;
+canvas.height = 400;
+
+// Game variables
+let player = { x: canvas.width / 2 - 15, y: canvas.height - 50, width: 30, height: 30 };
+let bullets = [];
+let enemies = [];
+let score = 0;
+let gameOver = false;
+
+// UI elements
+const leftBtn = document.getElementById('left');
+const rightBtn = document.getElementById('right');
+const shootBtn = document.getElementById('shoot');
+const gameOverScreen = document.getElementById('gameOverScreen');
+const finalScore = document.getElementById('finalScore');
+const restartBtn = document.getElementById('restart');
+
+// Event listeners
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'ArrowLeft') player.x -= 10;
+  if (e.code === 'ArrowRight') player.x += 10;
+  if (e.code === 'Space') shootBullet();
+});
+
+leftBtn.addEventListener('click', () => player.x -= 10);
+rightBtn.addEventListener('click', () => player.x += 10);
+shootBtn.addEventListener('click', shootBullet);
+
+restartBtn.addEventListener('click', restartGame);
+
+// Shoot bullet
+function shootBullet() {
+  if (gameOver) return;
+  bullets.push({ x: player.x + player.width / 2 - 5, y: player.y, width: 5, height: 10 });
+}
+
+// Create enemy
+function createEnemy() {
+  enemies.push({ x: Math.random() * (canvas.width - 30), y: 0, width: 30, height: 30 });
+}
+
+// Update game logic
+function update() {
+  if (gameOver) return;
+
+  // Update bullets
+  bullets.forEach((bullet, index) => {
+    bullet.y -= 5;
+    if (bullet.y + bullet.height < 0) bullets.splice(index, 1);
+  });
+
+  // Update enemies
+  enemies.forEach((enemy, index) => {
+    enemy.y += 2;
+
+    // Check collision with player
+    if (
+      player.x < enemy.x + enemy.width &&
+      player.x + player.width > enemy.x &&
+      player.y < enemy.y + enemy.height &&
+      player.y + player.height > enemy.y
+    ) {
+      endGame();
+    }
+
+    // Check collision with bullets
+    bullets.forEach((bullet, bulletIndex) => {
+      if (
+        bullet.x < enemy.x + enemy.width &&
+        bullet.x + bullet.width > enemy.x &&
+        bullet.y < enemy.y + enemy.height &&
+        bullet.y + bullet.height > enemy.y
+      ) {
+        enemies.splice(index, 1);
+        bullets.splice(bulletIndex, 1);
+        score++;
+      }
+    });
+
+    // Remove enemies off-screen
+    if (enemy.y > canvas.height) enemies.splice(index, 1);
+  });
+
+  // Spawn new enemies
+  if (Math.random() < 0.02) createEnemy();
+
+  // Prevent player from moving off-screen
+  if (player.x < 0) player.x = 0;
+  if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+}
+
+// Draw everything
+function draw() {
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw player
+  ctx.fillStyle = 'cyan';
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+
+  // Draw bullets
+  ctx.fillStyle = 'yellow';
+  bullets.forEach((bullet) => ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height));
+
+  // Draw enemies
+  ctx.fillStyle = 'red';
+  enemies.forEach((enemy) => ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height));
+
+  // Draw score
+  ctx.fillStyle = 'white';
+  ctx.font = '20px Arial';
+  ctx.fillText(`Score: ${score}`, 10, 20);
+}
+
+// End game
+function endGame() {
+  gameOver = true;
+  finalScore.textContent = `Your Score: ${score}`;
+  gameOverScreen.style.display = 'block';
+}
+
+// Restart game
+function restartGame() {
+  player = { x: canvas.width / 2 - 15, y: canvas.height - 50, width: 30, height: 30 };
+  bullets = [];
+  enemies = [];
+  score = 0;
+  gameOver = false;
+  gameOverScreen.style.display = 'none';
+  gameLoop();
+}
+
+// Game loop
+function gameLoop() {
+  update();
+  draw();
+  if (!gameOver) requestAnimationFrame(gameLoop);
+}
+
+// Start the game
+gameLoop();</script>
